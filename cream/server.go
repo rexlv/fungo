@@ -12,7 +12,7 @@ type Server struct {
 	router   *Router
 	listener net.Listener
 
-	mws []MiddlewareFunc
+	mws []Middleware
 
 	pool *sync.Pool
 }
@@ -21,13 +21,18 @@ type Server struct {
 func New() *Server {
 	return &Server{
 		router: newRouter(),
-		mws:    make([]MiddlewareFunc, 0),
+		mws:    make([]Middleware, 0),
+		pool: &sync.Pool{
+			New: func() interface{} {
+				return nil
+			},
+		},
 	}
 }
 
 // Serve implements fungo#Service interface
 func (s *Server) Serve(lis net.Listener) error {
-	s.listener = lis
+	return nil
 }
 
 // Stop implements fungo#Service interface
@@ -39,11 +44,13 @@ func (s *Server) Stop() {
 func (s *Server) GracefulStop() {
 }
 
+// Addr addr
 func (s *Server) Addr() net.Addr {
 	return s.listener.Addr()
 }
 
-func (s *Server) Use(mws ...MiddlewareFunc) {
+// Use use
+func (s *Server) Use(mws ...Middleware) {
 	s.mws = append(s.mws, mws...)
 }
 
@@ -60,25 +67,25 @@ func (s *Server) Handle(path string, handler Handler, mws ...Middleware) {
 }
 
 func (s *Server) GET(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("GET", path, handler, append(s.mws, mws...))
+	s.add("GET", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) POST(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("POST", path, handler, append(s.mws, mws...))
+	s.add("POST", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) PUT(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("PUT", path, handler, append(s.mws, mws...))
+	s.add("PUT", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) PATCH(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("PATCH", path, handler, append(s.mws, mws...))
+	s.add("PATCH", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) HEAD(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("HEAD", path, handler, append(s.mws, mws...))
+	s.add("HEAD", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) DELETE(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("DELETE", path, handler, append(s.mws, mws...))
+	s.add("DELETE", path, handler, append(s.mws, mws...)...)
 }
 func (s *Server) OPTIONS(path string, handler HandlerFunc, mws ...Middleware) {
-	s.add("OPTIONS", path, handler, append(s.mws, mws...))
+	s.add("OPTIONS", path, handler, append(s.mws, mws...)...)
 }
 
 func (s *Server) add(method, path string, handler HandlerFunc, mws ...Middleware) {
@@ -90,12 +97,24 @@ func (s *Server) add(method, path string, handler HandlerFunc, mws ...Middleware
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c := s.pool.Get().(Context)
+	// c := s.pool.Get().(Context)
+	c := &BaseContext{
+		req: &BaseRequest{},
+		rep: &BaseResponse{},
+	}
+
 	c.Request().Reset(r)
 	c.Response().Reset(w)
 
+	method := r.Method
+	path := r.URL.RawPath
+	if path == "" {
+		path = r.URL.Path
+	}
+
 	if err := func(c Context) error {
-		var handler HandlerFunc
+		node, _ := s.router.find(method, path)
+		handler := node.h[method].(HandlerFunc)
 		return handler(c)
 	}(c); err != nil {
 		panic(err)

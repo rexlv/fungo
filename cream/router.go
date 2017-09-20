@@ -1,5 +1,7 @@
 package cream
 
+import "fmt"
+
 const (
 	skind uint8 = iota
 	pkind
@@ -99,6 +101,7 @@ func (r *Router) add(method, path string, h fn) {
 }
 
 func (r *Router) insert(method, path string, h fn, t uint8, ppath string, pnames []string) {
+	fmt.Println("r: ", r)
 	cn := r.tree // Current node as root
 	if cn == nil {
 		panic("server ⇛ invalid method")
@@ -245,7 +248,7 @@ func (r *Router) find(method, path string) (cn *node, pvalues []string) {
 		}
 
 		// Param node
-		Param:
+	Param:
 		if c = cn.findByKind(pkind); c != nil {
 			// Save next
 			if cn.label == '/' {
@@ -265,7 +268,7 @@ func (r *Router) find(method, path string) (cn *node, pvalues []string) {
 		}
 
 		// Any node
-		Any:
+	Any:
 		if cn = cn.findByKind(akind); cn == nil {
 			if nn != nil {
 				cn = nn
@@ -284,7 +287,7 @@ func (r *Router) find(method, path string) (cn *node, pvalues []string) {
 		goto End
 	}
 
-	End:
+End:
 	if f, ok := cn.h[method]; ok {
 		cn.fn = f
 	} else {

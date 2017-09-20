@@ -7,21 +7,22 @@ import (
 	"time"
 )
 
+// Context interface{}
 type Context interface {
 	Status(int) error
 	Request() Request
 	Response() Response
 
-	QueryInt(string, int)
-	QueryString(string, string)
-	QueryUint(string, uint)
-	QueryDuration(string, time.Duration)
-	QueryBool(string, bool)
+	QueryInt(string, int) int
+	QueryString(string, string) string
+	QueryUint(string, uint) uint
+	QueryDuration(string, time.Duration) time.Duration
+	QueryBool(string, bool) bool
 
-	Get(string interface{})
+	Get(string) interface{}
 	Set(string, interface{})
 
-	Cookie(string) (string, error)
+	Cookie(string) (*http.Cookie, error)
 	SetCookie(*http.Cookie)
 	Cookies() []*http.Cookie
 
@@ -42,6 +43,14 @@ type BaseContext struct {
 	rep Response
 }
 
+func (ctx BaseContext) Get(string) interface{} {
+	return nil
+}
+
+func (ctx BaseContext) Set(string, interface{}) {
+
+}
+
 func (ctx BaseContext) Request() Request {
 	return ctx.req
 }
@@ -51,7 +60,8 @@ func (ctx BaseContext) Response() Response {
 }
 
 func (ctx BaseContext) Query(key string) (val string, err error) {
-	return ctx.req.URL().Get(key)
+	// return ctx.req.URL().Get(key)
+	return
 }
 
 func (ctx BaseContext) QueryInt(key string, expect int) (ret int) {
@@ -93,8 +103,17 @@ func (ctx BaseContext) QueryBool(key string, expect bool) (ret bool) {
 	return
 }
 
+func (ctx BaseContext) QueryDuration(key string, expect time.Duration) time.Duration {
+	return expect
+}
+
+func (ctx BaseContext) Status(sts int) error {
+	return nil
+}
+
 func (ctx BaseContext) Cookie(name string) (*http.Cookie, error) {
-	return ctx.req.Cookie(name)
+	// return ctx.req.Cookie(name)
+	return nil, nil
 }
 
 func (ctx BaseContext) SetCookie(cookie *http.Cookie) {
@@ -109,10 +128,39 @@ func (ctx BaseContext) Bind(i interface{}) error {
 	return nil
 }
 
+func (ctx BaseContext) Render(code int, obj interface{}) error {
+	mime := ctx.Response().Header().Get(HeaderContentType)
+	bs, err := render(mime).Render(obj)
+	if err != nil {
+		return err
+	}
+
+	return ctx.Blob(code, bs)
+}
+
+func (ctx BaseContext) Blob(code int, bs []byte) (err error) {
+	// response := ctx.Response()
+	// response.WriteHeader(code)
+	// _, err = response.Write(bs)
+	return
+}
+
 func (ctx BaseContext) JSON(code int, obj interface{}) error {
-	ctx.rep.SetStatus(code)
-	ctx.rep.SetData(obj)
-	return nil
+	response := ctx.Response()
+	if response.Header().Get(HeaderContentType) == "" {
+		response.Header().Set(HeaderContentType, MIMEApplicationJSONCharsetUTF8)
+	}
+
+	return ctx.Render(code, obj)
+}
+
+func (ctx BaseContext) JSONBlob(code int, bs []byte) error {
+	response := ctx.Response()
+	if response.Header().Get(HeaderContentType) == "" {
+		response.Header().Set(HeaderContentType, MIMEApplicationJSONCharsetUTF8)
+	}
+
+	return ctx.Blob(code, bs)
 }
 
 func (ctx BaseContext) XML(int, interface{}) error { return nil }

@@ -1,9 +1,8 @@
 package cream
 
 import (
-	"net/http"
 	"io"
-	"github.com/rexlv/fungo/codec"
+	"net/http"
 )
 
 type Response interface {
@@ -11,19 +10,27 @@ type Response interface {
 	SetError(error)
 	SetStatus(int)
 	SetData(interface{})
-	SetEncoder(codec.Encoder)
+	Writer() io.Writer
+	Header() http.Header
 }
 
 type BaseResponse struct {
 	http.ResponseWriter
 	writer io.Writer
 
-	err error
-	data interface{}
+	err    error
+	data   interface{}
 	status int
-	encoder codec.Encoder
 
 	commited bool
+}
+
+func (rep *BaseResponse) Header() http.Header {
+	return rep.ResponseWriter.Header()
+}
+
+func (rep *BaseResponse) Writer() io.Writer {
+	return rep.ResponseWriter
 }
 
 func (rep *BaseResponse) Reset(w http.ResponseWriter) {
@@ -38,18 +45,13 @@ func (rep *BaseResponse) SetData(i interface{}) {
 	rep.data = i
 }
 
-func (rep *BaseResponse) SetEncoder(encoder codec.Encoder) {
-	rep.encoder = encoder
-}
-
 func (rep *BaseResponse) SetStatus(code int) {
 	rep.status = code
 }
 
-func (rep *BaseResponse)  Status() int {
+func (rep *BaseResponse) Status() int {
 	return rep.status
 }
 
 func (rep *BaseResponse) Flush() {
-	rep.writer.Write()
 }
