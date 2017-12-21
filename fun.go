@@ -8,7 +8,7 @@ import (
 // App struct
 type App struct {
 	srvs      map[string]Service
-	jobs      map[string]Work
+	wrks      map[string]Work
 	listeners map[string]net.Listener
 	deferFns  []func()
 }
@@ -17,12 +17,13 @@ type App struct {
 func New() *App {
 	return &App{
 		srvs:     make(map[string]Service),
-		jobs:     make(map[string]Work),
+		wrks:     make(map[string]Work),
 		deferFns: make([]func(), 0),
+		listeners: make(map[string]net.Listener),
 	}
 }
 
-// Init init application
+// Init initialize application
 func (app *App) Init() {
 }
 
@@ -35,7 +36,6 @@ func (app *App) Run() {
 	var wg sync.WaitGroup
 	for name, srv := range app.srvs {
 		wg.Add(1)
-		srv.Mux()
 		lis := app.listeners[name]
 		go func(lis net.Listener, srv Service) {
 			defer wg.Done()
@@ -50,5 +50,5 @@ func (app *App) Run() {
 }
 
 func (app *App) run() {
-
 }
+

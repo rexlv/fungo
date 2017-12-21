@@ -1,31 +1,57 @@
 package fungo
 
 import (
-	"fmt"
 	"net"
 	"reflect"
+	"fmt"
+	"github.com/rexlv/fungo/cream"
 )
 
 // Service interface
 type Service interface {
+	GracefulStop()
 	Serve(lis net.Listener) error
 	Stop()
-	GracefulStop()
 
+	Label() string
 	Mux()
 }
 
-func clone(i interface{}) interface{} {
-	// Wrap argument to reflect.Value, dereference it and return back as interface{}
-	return reflect.Indirect(reflect.ValueOf(i)).Interface()
-}
-
 // Serve serve
-func (app *App) Serve(srv Service, addr string) {
-	t := reflect.ValueOf(srv).Elem().Type()
-	//v := reflect.New(reflect.TypeOf(srv).Elem())
+func (app *App) Serve(srv Service, opts ...ServiceOption) {
+	var options ServiceOptions
 
-	fmt.Println("t: ", t)
+	for _, opt := range opts {
+		opt(&options)
+	}
 
-	app.srvs[addr] = srv
+	typ := reflect.TypeOf(srv)
+	val := reflect.ValueOf(srv).Elem()
+	if typ.Kind() != reflect.Ptr {
+		panic("pointer required")
+	}
+
+	if typ.Elem().Kind() != reflect.Struct {
+		panic("struct pointer required")
+	}
+
+	switch typ.Elem().Field(0).Type {
+	case reflect.TypeOf(new(cream.Server)):
+		fmt.Println("cream server")
+		val.Field(0).Set(reflect.ValueOf(cream.New()))
+	default:
+		panic("cream server at field required")
+	}
+
+	fmt.Println("type", typ, val, srv)
+
+
+	listener, err := net.Listen("tcp", ":9090")
+	if err != nil {
+		panic(err)
+	}
+
+	app.srvs[srv.Label()] = srv
+	app.listeners[srv.Label()] = listener
 }
+

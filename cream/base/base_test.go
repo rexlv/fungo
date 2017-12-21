@@ -1,5 +1,5 @@
 // build test
-package cream_test
+package base_test
 
 import (
 	"net/http"

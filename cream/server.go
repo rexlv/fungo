@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"fmt"
 )
 
 // Server http server
@@ -30,9 +31,13 @@ func New() *Server {
 	}
 }
 
+func (s *Server) Label() string {
+	return "http"
+}
+
 // Serve implements fungo#Service interface
 func (s *Server) Serve(lis net.Listener) error {
-	return nil
+	return http.Serve(lis, s)
 }
 
 // Stop implements fungo#Service interface

@@ -2,7 +2,6 @@ package fungo
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,24 +12,20 @@ import (
 ///////////////////////////////////////
 type ServiceOption func(*ServiceOptions)
 type ServiceOptions struct {
-	name string
-	host string
-	port int
-	addr string
+	name   string
+	host   string
+	port   int
+	addr   string
 }
 
-func (opts ServiceOptions) Addr() *url.URL {
+func (opts ServiceOptions) Addr() string {
 	addr := opts.addr
 	if opts.port != 0 {
 		addr = fmt.Sprintf("%s:%d", opts.host, opts.port)
 	}
 
-	u, e := url.Parse(addr)
-	if e != nil {
-		panic("invalid addr")
-	}
+	return addr
 
-	return u
 }
 
 func Host(host string) ServiceOption {

@@ -3,7 +3,7 @@ package http
 import "github.com/rexlv/fungo/cream"
 
 type Server struct {
-	cream.Server
+	*cream.Server
 }
 
 func (s *Server) Mux() {
@@ -11,5 +11,5 @@ func (s *Server) Mux() {
 }
 
 func pong(c cream.Context) error {
-	return nil
+	return c.JSON(200, "bye")
 }
